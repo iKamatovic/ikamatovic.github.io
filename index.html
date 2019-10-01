@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>Ivan Kamatovic</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<link href="https://fonts.googleapis.com/css?family=Big+Shoulders+Display&display=swap" rel="stylesheet">
+		<link type="text/css" rel="stylesheet" href="main.css">
+		<!-- Global site tag (gtag.js) - Google Analytics -->
+		<script async src="https://www.googletagmanager.com/gtag/js?id=UA-149122945-1"></script>
+		<script>
+			window.dataLayer = window.dataLayer || [];
+			function gtag(){dataLayer.push(arguments);}
+			gtag('js', new Date());
+
+			gtag('config', 'UA-149122945-1');
+		</script>
+	</head>
+	<body>
+		<div id="container"></div>
+		<article>
+			<p>I create digital experiences <br />/ Immersive AR &amp; VR applications<br />/ Interactive WebGL based applications </p>
+			<p>Find me on <a href="https://github.com/ikamatovic" target="_blank">GitHub</a> or <a href="https://www.linkedin.com/in/ikamatovic/" target="_blank">LinkedIn</a></p>
+		</article>
+		<script type="module">
+			import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/108/three.module.js';
+			import Smoke from './helpers/Smoke.js'
+			import GLTFLoader from './loaders/GLTFLoader.js'
+
+			let renderer, scene, camera, mainLight, planet, rocket;
+			let smokeFrequencyCounter = 0;
+			const smokeFrequency = 5;
+			const smokeInactiveQueue = [];
+			const smokeActiveQueue = [];
+			const loader = new GLTFLoader();
+			const clock = new THREE.Clock();
+
+			const createLights = () => {
+				const light = new THREE.HemisphereLight(0xffffff, 0xffffff, .3)
+
+				mainLight = new THREE.DirectionalLight(0xffffff, 1);
+				mainLight.position.set(-100, 30, 50);
+				mainLight.castShadow = true;
+
+				const backLight = new THREE.DirectionalLight(0xffffff, .2);
+				backLight.position.set(100, 30, 50);
+				backLight.castShadow = true;
+
+				scene.add(backLight);
+				scene.add(light);
+				scene.add(mainLight);
+			}
+
+			const createPlanet = () => {
+				const geometry = new THREE.IcosahedronGeometry(3, 1);
+				const material = new THREE.MeshPhongMaterial({ color: 0x7f2850, side: THREE.DoubleSide, flatShading: true })
+
+				planet = new THREE.Mesh(geometry, material);
+				planet.position.set(0, 0, 0);
+				planet.receiveShadow = true;
+				scene.add(planet);
+			}
+
+			const createRocket = () => {
+				rocket = new THREE.Object3D();
+				rocket.rotation.set(Math.PI/4, 0, 0)
+				
+				loader.load('assets/rocket/scene.gltf', function (gltf) {
+					const model = gltf.scene;
+					model.position.set(6, 0, 0)
+					model.rotation.set(-Math.PI/2, 0, 0)
+					model.scale.set(0.2,0.2,0.2);
+					rocket.model = model;
+					rocket.add(model);
+				});
+
+				scene.add(rocket);
+			}
+
+			const spawnSmoke = () => {
+				const smoke = smokeInactiveQueue.length > 0 ? smokeInactiveQueue.shift() : new Smoke();
+				rocket.model.getWorldPosition(smoke.mesh.position);
+				
+				scene.add(smoke.mesh)
+				smokeActiveQueue.push(smoke)
+				
+				smoke.onAnimationEnd(() => {
+					scene.remove(smoke.mesh);
+
+					smoke.reset();
+					smokeActiveQueue.splice(smokeActiveQueue.indexOf(smoke), 1)
+					smokeInactiveQueue.push(smoke);
+				})
+			}
+
+			const setLightIntensity = (intensity) => {
+				mainLight.intensity = intensity;
+			}
+
+			const onWindowResize = () => {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+			}
+
+			const animate = () => {
+				requestAnimationFrame(animate);
+				render();
+
+				planet.rotation.y += .005;
+				
+
+				if (rocket.model) {
+					rocket.rotation.y += .02;
+
+					if (smokeFrequencyCounter % smokeFrequency === 0) spawnSmoke();
+
+					smokeActiveQueue.forEach(smoke => smoke.update(clock.getElapsedTime()))
+					smokeFrequencyCounter++;
+				}
+			}
+
+			const render = () => {
+				renderer.render(scene, camera)
+			}
+
+			(function() {
+				const container = document.getElementById('container');
+
+				scene = new THREE.Scene();
+
+				camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 10000);
+				camera.position.set(0, 0, 20);
+				camera.lookAt(scene.position);
+				camera.updateMatrix();
+
+				renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+				renderer.setPixelRatio(window.devicePixelRatio);
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				container.appendChild(renderer.domElement);
+
+				window.addEventListener('resize', onWindowResize, false);
+
+				createLights();
+				createPlanet();
+				createRocket();
+				animate();
+			})()
+
+			document.querySelector('article').addEventListener('scroll', function(e) {
+				const factor = 1 - (e.target.scrollTop/e.target.offsetHeight);
+				mainLight.intensity = e.target.scrollTop > 50 ? factor : 1;
+				document.body.setAttribute('style',  `background: linear-gradient(90deg, rgb(61,56,97) ${e.target.scrollTop > 50 ? factor * 50 : 50}%, rgb(28, 25, 46) 100%)`);
+			})
+		</script>
+	</body>
+</html>
