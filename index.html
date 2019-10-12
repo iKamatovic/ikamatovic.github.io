@@ -12,11 +12,10 @@
 			window.dataLayer = window.dataLayer || [];
 			function gtag(){dataLayer.push(arguments);}
 			gtag('js', new Date());
-
-			gtag('config', 'UA-149122945-1');
+		 	gtag('config', 'UA-149122945-1');
 		</script>
 	</head>
-	<body>
+	<body class="hidden">
 		<div id="container"></div>
 		<article>
 			<p>I create digital experiences <br />/ Immersive AR &amp; VR applications<br />/ Interactive WebGL based applications </p>
@@ -49,6 +48,8 @@
 				scene.add(backLight);
 				scene.add(light);
 				scene.add(mainLight);
+
+				return Promise.resolve();
 			}
 
 			const createPlanet = () => {
@@ -59,22 +60,27 @@
 				planet.position.set(0, 0, 0);
 				planet.receiveShadow = true;
 				scene.add(planet);
+
+				return Promise.resolve();
 			}
 
 			const createRocket = () => {
-				rocket = new THREE.Object3D();
-				rocket.rotation.set(Math.PI/4, 0, 0)
+				return new Promise((resolve) => {
+					rocket = new THREE.Object3D();
+					rocket.rotation.set(Math.PI/4, 0, 0)
 				
-				loader.load('assets/rocket/scene.gltf', function (gltf) {
-					const model = gltf.scene;
-					model.position.set(6, 0, 0)
-					model.rotation.set(-Math.PI/2, 0, 0)
-					model.scale.set(0.2,0.2,0.2);
-					rocket.model = model;
-					rocket.add(model);
-				});
+					loader.load('assets/rocket/scene.gltf', function (gltf) {
+						const model = gltf.scene;
+						model.position.set(6, 0, 0)
+						model.rotation.set(-Math.PI/2, 0, 0)
+						model.scale.set(0.2,0.2,0.2);
+						rocket.model = model;
+						rocket.add(model);
+						resolve();
+					});
 
-				scene.add(rocket);
+					scene.add(rocket);
+				});
 			}
 
 			const spawnSmoke = () => {
@@ -141,10 +147,11 @@
 
 				window.addEventListener('resize', onWindowResize, false);
 
-				createLights();
-				createPlanet();
-				createRocket();
-				animate();
+				Promise.all([createLights(), createPlanet(), createRocket()]).then(() => {
+					document.body.className = 'ready'
+					animate();
+				})
+				
 			})()
 
 			document.querySelector('article').addEventListener('scroll', function(e) {

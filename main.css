@@ -7,6 +7,7 @@ html, body {
   overflow: hidden;
   font-family: 'Big Shoulders Display', cursive;
   font-size: 15px;
+  transform: translateZ(0);
 }
 
 article {
@@ -31,6 +32,19 @@ a {
 
 a:hover {
   color: rgb(134, 51, 88);
+}
+
+.hidden {
+  opacity: 0;
+}
+
+.ready {
+  animation: 1s ease-in 0s 1 fadeIn;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 @media (max-width: 640px){
